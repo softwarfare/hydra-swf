@@ -5,14 +5,15 @@ package driver
 
 import (
 	"context"
+	sqlDb "database/sql"
 	"io/fs"
 	"strings"
 	"time"
 
-	"github.com/gobuffalo/pop/v6"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/luna-duclos/instrumentedsql"
 
+	pop "github.com/gobuffalo/pop/v6"
 	"github.com/ory/hydra/v2/client"
 	"github.com/ory/hydra/v2/consent"
 	"github.com/ory/hydra/v2/hsm"
@@ -65,6 +66,27 @@ func NewRegistrySQL() *RegistrySQL {
 	return r
 }
 
+// createSchemaIfNotExists checks if the schema exists and creates it if not.
+func (m *RegistrySQL) createSchemaIfNotExists(ctx context.Context, dsn string) error {
+	db, err := sqlDb.Open("postgres", dsn)
+	if err != nil {
+		m.Logger().WithError(err).Warnf("Unable to connect to database.")
+		return errorsx.WithStack(err)
+	}
+	defer db.Close()
+
+	schemaName := "hydra"
+
+	_, err = db.ExecContext(ctx, "CREATE SCHEMA IF NOT EXISTS "+schemaName)
+	if err != nil {
+		m.Logger().WithError(err).Warnf("Unable to create schema.")
+		return errorsx.WithStack(err)
+	}
+	m.Logger().Infof("Schema %s created.", schemaName)
+
+	return nil
+}
+
 func (m *RegistrySQL) Init(
 	ctx context.Context,
 	skipNetworkInit bool,
@@ -104,6 +126,13 @@ func (m *RegistrySQL) Init(
 			return errorsx.WithStack(err)
 		}
 		if err := resilience.Retry(m.l, 5*time.Second, 5*time.Minute, c.Open); err != nil {
+			return errorsx.WithStack(err)
+		}
+
+		// Check and create schema if it doesn't exist
+		if err := m.createSchemaIfNotExists(ctx, sqlcon.FinalizeDSN(m.l, cleanedDSN)); err != nil {
+			m.Logger().WithError(err).Warnf("Error creating hydra schema")
+
 			return errorsx.WithStack(err)
 		}
 
