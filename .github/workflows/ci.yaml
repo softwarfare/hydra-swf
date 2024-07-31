@@ -15,7 +15,7 @@ concurrency:
 jobs:
   oidc-conformity:
     name: Run OIDC conformity tests
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     steps:
       - name: Checkout repository
         uses: ory/ci/checkout@master
@@ -33,7 +33,7 @@ jobs:
 
   sdk-generate:
     name: Generate SDKs
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     outputs:
       sdk-cache-key: ${{ steps.sdk-generate.outputs.sdk-cache-key }}
     steps:
@@ -44,7 +44,7 @@ jobs:
 
   test:
     name: Run tests and lints
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     needs:
       - sdk-generate
     services:
@@ -110,7 +110,7 @@ jobs:
     name: Run HSM tests
     needs:
       - sdk-generate
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     env:
       HSM_ENABLED: true
       HSM_LIBRARY: /usr/lib/softhsm/libsofthsm2.so
@@ -141,7 +141,7 @@ jobs:
 
   test-e2e:
     name: Run end-to-end tests
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     needs:
       - sdk-generate
     strategy:
@@ -189,7 +189,7 @@ jobs:
       - run: ./test/e2e/circle-ci.bash ${{ matrix.database }} ${{ matrix.args }}
 
   docs-cli:
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     name: Build CLI docs
     needs:
       - test
@@ -201,7 +201,7 @@ jobs:
 
   changelog:
     name: Generate changelog
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     if: ${{ github.ref_type == 'tag' || github.ref_name == 'master' }}
     needs:
       - test
@@ -214,7 +214,7 @@ jobs:
 
   sdk-release:
     name: Release SDKs
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     if: ${{ github.ref_type == 'tag' }}
     needs:
       - test
@@ -229,7 +229,7 @@ jobs:
 
   release:
     name: Generate release
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     if: ${{ github.ref_type == 'tag' }}
     needs:
       - oidc-conformity
@@ -248,7 +248,7 @@ jobs:
 
   render-version-schema:
     name: Render version schema
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     if: ${{ github.ref_type == 'tag' }}
     needs:
       - release
@@ -260,7 +260,7 @@ jobs:
 
   newsletter-draft:
     name: Draft newsletter
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     if: ${{ github.ref_type == 'tag' }}
     needs:
       - release
@@ -275,7 +275,7 @@ jobs:
 
   slack-approval-notification:
     name: Pending approval Slack notification
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     if: ${{ github.ref_type == 'tag' }}
     needs:
       - newsletter-draft
@@ -286,7 +286,7 @@ jobs:
 
   newsletter-send:
     name: Send newsletter
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
     needs:
       - newsletter-draft
     if: ${{ github.ref_type == 'tag' }}
